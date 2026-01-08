@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Müşteri Kaybı Tahmin Sistemi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #87CEEB;
+            min-height: 100vh;
+            padding: 30px 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .form-container {
+            padding: 40px;
+        }
+
+        .form-section {
+            margin-bottom: 35px;
+        }
+
+        .section-title {
+            font-size: 1.4em;
+            color: #7B1FA2;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #E1BEE7;
+            font-weight: 600;
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .input-box {
+            background: #F8F9FA;
+            border: 2px solid #E1BEE7;
+            border-radius: 12px;
+            padding: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .input-box:hover {
+            border-color: #9C27B0;
+            box-shadow: 0 4px 12px rgba(156, 39, 176, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .input-box label {
+            display: block;
+            font-weight: 600;
+            color: #4A148C;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .input-box input,
+        .input-box select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #E1BEE7;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: white;
+            color: #333;
+        }
+
+        .input-box input:focus,
+        .input-box select:focus {
+            outline: none;
+            border-color: #9C27B0;
+            box-shadow: 0 0 0 3px rgba(156, 39, 176, 0.1);
+        }
+
+        .input-box input::placeholder {
+            color: #999;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(156, 39, 176, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: 600;
+            display: none;
+        }
+
+        .result.success {
+            background: linear-gradient(135deg, #C8E6C9 0%, #A5D6A7 100%);
+            color: #2E7D32;
+            border: 2px solid #66BB6A;
+            display: block;
+        }
+
+        .result.warning {
+            background: linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%);
+            color: #E65100;
+            border: 2px solid #FFB74D;
+            display: block;
+        }
+
+        .result.danger {
+            background: linear-gradient(135deg, #FFCDD2 0%, #EF9A9A 100%);
+            color: #C62828;
+            border: 2px solid #E57373;
+            display: block;
+        }
+
+        .probability-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: white;
+            margin-left: 10px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .input-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-container {
+                padding: 25px;
+            }
+
+            .header h1 {
+                font-size: 1.6em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏦 Banka Müşteri Kaybı Tahmin Sistemi</h1>
+        </div>
+
+        <div class="form-container">
+            <form id="churnForm">
+                <!-- Kişisel Bilgiler -->
+                <div class="form-section">
+                    <h2 class="section-title">👤 Kişisel Bilgiler</h2>
+                    <div class="input-grid">
+                        <div class="input-box">
+                            <label for="Customer_Age">Yaş</label>
+                            <input type="number" id="Customer_Age" min="18" max="100" placeholder="Örn: 45" required>
+                        </div>
+
+                        <div class="input-box">
+                            <label for="Dependent_count">Çocuk Sayısı</label>
+                            <input type="number" id="Dependent_count" min="0" max="10" placeholder="Örn: 2" required>
+                        </div>
+
+                        <div class="input-box">
+                            <label for="Gender">Cinsiyet</label>
+                            <select id="Gender" required>
+                                <option value="1">Erkek</option>
+                                <option value="0">Kadın</option>
+                            </select>
+                        </div>
+
+                        <div class="input-box">
+                            <label for="Marital_Status">Medeni Durum</label>
+                            <select id="Marital_Status" required>
+                                <option value="Married">Evli</option>
+                                <option value="Single">Bekar</option>
+                                <option value="Unknown">Bilinmiyor</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Eğitim ve Gelir -->
+                <div class="form-section">
+                    <h2 class="section-title">🎓 Eğitim ve Gelir</h2>
+                    <div class="input-grid">
+                        <div class="input-box">
+                            <label for="Education_Level">Eğitim Seviyesi</label>
+                            <input type="number" id="Education_Level" min="0" max="4" placeholder="0=Eğitimsiz, 1=Lise, 2=Üniversite, 3=Lisans, 4=Lisansüstü" required>
+                        </div>
+
+                        <div class="input-box">
+                            <label for="Income_Category">Gelir Kategorisi</label>
+                            <input type="number" id="Income_Category" min="0" max="4" placeholder="0=Çok Düşük, 1=Düşük, 2=Orta, 3=Yüksek, 4=Çok Yüksek" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Müşteri İlişkileri -->
+                <div class="form-section">
+                    <h2 class="section-title">🤝 Müşteri İlişkileri</h2>
+                    <div class="input-grid">
+                        <div class="input-box">
+                            <label for="Months_on_book">Banka Müşterisi Olma Süresi (Ay)</label>
+                            <input type="number" id="Months_on_book" min="0" placeholder="Örn: 36" required>
+                        </div>
+
+                        <div class="input-box">
+                            <label for="Total_Relationship_Count">Kullanılan Banka Ürünü Sayısı</label>
+                            <input type="number" id="Total_Relationship_Count" min="1" max="10" placeholder="Kredi kartı, hesap, kredi vb. toplam sayı (Örn: 4)" required>
+                        </div>
+
+                        <div class="input-box">
+                            <label for="Months_Inactive_12_mon">Son 12 Ayda İnaktif Ay Sayısı</label>
+                            <input type="number" id="Months_Inactive_12_mon" min="0" max="12" placeholder="Örn: 2" required>
+                        </div>
+
+                        <div class="input-box">
+                            <label for="Contacts_Count_12_mon">Son 12 Ayda Banka İletişim Sayısı</label>
+                            <input type="number" id="Contacts_Count_12_mon" min="0" max="12" placeholder="Örn: 3" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kredi ve Finansal Bilgiler -->
+                <div class="form-section">
+                    <h2 class="section-title">💳 Kredi ve Finansal Bilgiler</h2>
+                    <div class="input-grid">
+                        <div class="input-box">
+                            <label for="Credit_Limit">Kredi Kartı Limiti</label>
+                            <input type="number" id="Credit_Limit" min="0" step="0.01" placeholder="Örn: 12000" required>
+                        </div>
+
+                        <div class="input-box">
+                            <label for="Total_Revolving_Bal">Toplam Dönen Bakiye</label>
+                            <input type="number" id="Total_Revolving_Bal" min="0" placeholder="Örn: 800" required>
+                        </div>
+
+                        <div class="input-box">
+                            <label for="Avg_Open_To_Buy">Ortalama Kullanılabilir Limit</label>
+                            <input type="number" id="Avg_Open_To_Buy" min="0" step="0.01" placeholder="Örn: 11200" required>
+                        </div>
+
+                        <div class="input-box">
+                            <label for="Avg_Utilization_Ratio">Ortalama Limit Kullanım Oranı</label>
+                            <input type="number" id="Avg_Utilization_Ratio" min="0" max="1" step="0.01" placeholder="0.00 - 1.00 arası (Örn: 0.25 = %25)" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- İşlem Bilgileri -->
+                <div class="form-section">
+                    <h2 class="section-title">📊 İşlem Bilgileri</h2>
+                    <div class="input-grid">
+                        <div class="input-box">
+                            <label for="Total_Trans_Amt">Toplam İşlem Tutarı</label>
+                            <input type="number" id="Total_Trans_Amt" min="0" placeholder="Örn: 4500" required>
+                        </div>
+
+                        <div class="input-box">
+                            <label for="Total_Trans_Ct">Toplam İşlem Sayısı</label>
+                            <input type="number" id="Total_Trans_Ct" min="0" placeholder="Örn: 65" required>
+                        </div>
+
+                        <div class="input-box">
+                            <label for="Total_Amt_Chng_Q4_Q1">Tutar Değişimi (4. Çeyrek / 1. Çeyrek)</label>
+                            <input type="number" id="Total_Amt_Chng_Q4_Q1" min="0" step="0.01" placeholder="Örn: 1.2" required>
+                        </div>
+
+                        <div class="input-box">
+                            <label for="Total_Ct_Chng_Q4_Q1">İşlem Sayısı Değişimi (4. Çeyrek / 1. Çeyrek)</label>
+                            <input type="number" id="Total_Ct_Chng_Q4_Q1" min="0" step="0.01" placeholder="Örn: 0.8" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kart Kategorisi -->
+                <div class="form-section">
+                    <h2 class="section-title">💎 Kart Bilgileri</h2>
+                    <div class="input-grid">
+                        <div class="input-box">
+                            <label for="Card_Category">Kart Kategorisi</label>
+                            <select id="Card_Category" required>
+                                <option value="Blue">Mavi</option>
+                                <option value="Gold">Altın</option>
+                                <option value="Silver">Gümüş</option>
+                                <option value="Platinum">Platin</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn">🔮 Tahmin Yap</button>
+            </form>
+
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("churnForm").addEventListener("submit", async function(e) {
+            e.preventDefault();
+
+            const marital = document.getElementById("Marital_Status").value;
+            const card = document.getElementById("Card_Category").value;
+
+            const data = {
+                Customer_Age: +document.getElementById("Customer_Age").value,
+                Dependent_count: +document.getElementById("Dependent_count").value,
+                Education_Level: +document.getElementById("Education_Level").value,
+                Income_Category: +document.getElementById("Income_Category").value,
+                Months_on_book: +document.getElementById("Months_on_book").value,
+                Total_Relationship_Count: +document.getElementById("Total_Relationship_Count").value,
+                Months_Inactive_12_mon: +document.getElementById("Months_Inactive_12_mon").value,
+                Contacts_Count_12_mon: +document.getElementById("Contacts_Count_12_mon").value,
+                Credit_Limit: +document.getElementById("Credit_Limit").value,
+                Total_Revolving_Bal: +document.getElementById("Total_Revolving_Bal").value,
+                Avg_Open_To_Buy: +document.getElementById("Avg_Open_To_Buy").value,
+                Total_Amt_Chng_Q4_Q1: +document.getElementById("Total_Amt_Chng_Q4_Q1").value,
+                Total_Trans_Amt: +document.getElementById("Total_Trans_Amt").value,
+                Total_Trans_Ct: +document.getElementById("Total_Trans_Ct").value,
+                Total_Ct_Chng_Q4_Q1: +document.getElementById("Total_Ct_Chng_Q4_Q1").value,
+                Avg_Utilization_Ratio: +document.getElementById("Avg_Utilization_Ratio").value,
+
+                Gender_M: +document.getElementById("Gender").value,
+
+                Marital_Status_Married: marital === "Married" ? 1 : 0,
+                Marital_Status_Single: marital === "Single" ? 1 : 0,
+                Marital_Status_Unknown: marital === "Unknown" ? 1 : 0,
+
+                Card_Category_Gold: card === "Gold" ? 1 : 0,
+                Card_Category_Silver: card === "Silver" ? 1 : 0,
+                Card_Category_Platinum: card === "Platinum" ? 1 : 0
+            };
+
+            try {
+                const response = await fetch("/predict", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                const resultDiv = document.getElementById("result");
+                
+                if (result.error) {
+                    resultDiv.className = "result danger";
+                    resultDiv.innerHTML = "❌ Hata: " + result.error;
+                } else {
+                    const prob = (result.churn_probability * 100).toFixed(2);
+                    const prediction = result.churn_prediction;
+                    
+                    if (prediction === 1) {
+                        resultDiv.className = "result danger";
+                        resultDiv.innerHTML = `⚠️ <strong>Müşteri Kaybı Riski Yüksek!</strong><br>
+                            Kayıp Olasılığı: <span class="probability-badge">%${prob}</span>`;
+                    } else if (result.churn_probability > 0.3) {
+                        resultDiv.className = "result warning";
+                        resultDiv.innerHTML = `⚡ <strong>Orta Seviye Risk</strong><br>
+                            Kayıp Olasılığı: <span class="probability-badge">%${prob}</span>`;
+                    } else {
+                        resultDiv.className = "result success";
+                        resultDiv.innerHTML = `✅ <strong>Müşteri Kaybı Riski Düşük</strong><br>
+                            Kayıp Olasılığı: <span class="probability-badge">%${prob}</span>`;
+                    }
+                }
+            } catch (error) {
+                const resultDiv = document.getElementById("result");
+                resultDiv.className = "result danger";
+                resultDiv.innerHTML = "❌ Bağlantı hatası: " + error.message;
+            }
+        });
+    </script>
+
+</body>
+</html>
